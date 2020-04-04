@@ -57,11 +57,11 @@
     tma.sort((a, b) => {
       let ca = a.latlng.split(",");
       let cb = b.latlng.split(",");
-      return ca[0] > cb[0] ? -1 : ca[0] < cb[0] ? 1 : 0;
+      return ca[0] > cb[0] ? 1 : (ca[0] < cb[0] ? -1 : 0);
     });
 
     let prevlat = null;
-    let mindiff = (0.062 * 800) / window.innerWidth;
+    let mindiff = (0.075 * 800) / window.innerWidth;
     // console.log(mindiff)
     for (const data of tma) {
       let id = parseInt(data.id);
@@ -86,7 +86,7 @@
       }
       prevlat = coordinates[0];
 
-      // console.log(data.name + " : " + coordinates);
+      console.log(data.name + " : " + coordinates);
       // console.log(data.status_tma + " : " + data.tma);
       // console.log(data.sampling);
 
@@ -252,35 +252,35 @@
       .attr("y1", -height)
       .attr("y2", 0);
 
-    // top
-    tiang
-      .append("line")
-      .attr("stroke", stroke)
-      .attr("stroke-width", stroke_width)
-      .attr("x1", xh_1)
-      .attr("x2", xh_2)
-      .attr("y1", yh_1)
-      .attr("y2", yh_1);
+    // // top
+    // tiang
+    //   .append("line")
+    //   .attr("stroke", stroke)
+    //   .attr("stroke-width", stroke_width)
+    //   .attr("x1", xh_1)
+    //   .attr("x2", xh_2)
+    //   .attr("y1", yh_1)
+    //   .attr("y2", yh_1);
 
-    // mid
-    tiang
-      .append("line")
-      .attr("stroke", stroke)
-      .attr("stroke-width", stroke_width)
-      .attr("x1", xh2_1)
-      .attr("x2", xh2_2)
-      .attr("y1", yh_2)
-      .attr("y2", yh_2);
+    // // mid
+    // tiang
+    //   .append("line")
+    //   .attr("stroke", stroke)
+    //   .attr("stroke-width", stroke_width)
+    //   .attr("x1", xh2_1)
+    //   .attr("x2", xh2_2)
+    //   .attr("y1", yh_2)
+    //   .attr("y2", yh_2);
 
-    // bot
-    tiang
-      .append("line")
-      .attr("stroke", stroke)
-      .attr("stroke-width", stroke_width)
-      .attr("x1", xh_1)
-      .attr("x2", xh_2)
-      .attr("y1", yh_3)
-      .attr("y2", yh_3);
+    // // bot
+    // tiang
+    //   .append("line")
+    //   .attr("stroke", stroke)
+    //   .attr("stroke-width", stroke_width)
+    //   .attr("x1", xh_1)
+    //   .attr("x2", xh_2)
+    //   .attr("y1", yh_3)
+    //   .attr("y2", yh_3);
   }
 </script>
 
