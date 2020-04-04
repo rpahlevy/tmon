@@ -31,7 +31,13 @@
   }
 
   function format_date(str) {
-    var dt = new Date(str);
+    var dt;
+    if (str && str.length) {
+      dt = new Date(str)
+    } else {
+      dt = new Date()
+    }
+
     var bulan = [
       "Jan",
       "Feb",
@@ -96,7 +102,10 @@
           name: data.name,// + Math.random() * 10,
           status: data.status_tma,
           tma: data.tma.toFixed(2),
-          sampling: format_date(data.sampling)
+          sampling: format_date(data.sampling),
+          siaga1: data.normal ? data.normal.toFixed(2) : '--',
+          siaga2: data.siaga1 ? data.siaga1.toFixed(2) : '--',
+          siaga3: data.siaga2 ? data.siaga2.toFixed(2) : '--',
         },
         geometry: {
           type: "Point",
@@ -121,6 +130,10 @@
     if (loading) {
       loading.remove();
     }
+
+    var now = format_date();
+    var update_time = document.getElementById("update-time");
+    update_time.textContent = `Update: ${now}`;
 
     var width = window.innerWidth;
     var height = 240;
@@ -153,7 +166,10 @@
         name: feature.properties.name,
         status: feature.properties.status,
         tma: feature.properties.tma,
-        sampling: feature.properties.sampling
+        sampling: feature.properties.sampling,
+        siaga1: feature.properties.siaga1,
+        siaga2: feature.properties.siaga2,
+        siaga3: feature.properties.siaga3,
       };
       add_marker(ll, info);
     }
@@ -183,7 +199,9 @@
     // 	.text(name)
   }
 
-  function add_info(g, info, width = 65, height = 35) {
+  function add_info(g, info, width = 65, height = 65) {
+    g.attr("font-size", "7px")
+
     g.append("rect")
       .attr("x", -width / 2)
       .attr("y", 10)
@@ -193,12 +211,8 @@
       .attr("stroke", "gray");
 
     // info
-    var fill =
-      info.status == "siaga1"
-        ? "green"
-        : info.status == "siaga2"
-        ? "yellow"
-        : "red";
+    var fill = info.status == "siaga1" ? "green" :
+        (info.status == "siaga2" ? "yellow" : "red");
     g.append("circle")
       .attr("cx", -width / 2 + 5)
       .attr("cy", 17)
@@ -215,16 +229,30 @@
     g.append("text")
       .attr("y", 30) //magic number here
       .attr("x", -width / 2 + 9)
-      .attr("font-size", "7px")
-      // .attr("font-weight", "bold")
       .text(info.tma + " m");
 
     g.append("text")
       .attr("y", 40) //magic number here
       .attr("x", -width / 2 + 9)
-      .attr("font-size", "7px")
-      // .attr("font-weight", "bold")
       .text(info.sampling);
+
+    g.append("text")
+      .attr("y", 50) //magic number here
+      .attr("x", -width / 2 + 9)
+      .attr("color", "green")
+      .text(`SH: ${info.siaga1}`);
+
+    g.append("text")
+      .attr("y", 60) //magic number here
+      .attr("x", -width / 2 + 9)
+      .attr("color", "orange")
+      .text(`SK: ${info.siaga2}`);
+
+    g.append("text")
+      .attr("y", 70) //magic number here
+      .attr("x", -width / 2 + 9)
+      .attr("color", "red")
+      .text(`SM: ${info.siaga3}`);
   }
 
   function add_tiang(g, height = 70) {
@@ -284,10 +312,43 @@
   }
 </script>
 
+<style>
+  body {
+    padding: 0;
+    margin: 0;
+  }
+
+  header,
+  #loading {
+    text-align: center;
+  }
+
+  header {
+    margin-bottom: 1rem;
+    padding: 1rem 0;
+  }
+
+  h1, p {
+    margin: 0;
+    padding: 0;
+  }
+
+  h1 {
+    margin-bottom: .25rem
+  }
+</style>
+
 <svelte:head>
   <script src="https://d3js.org/d3.v5.min.js" on:load={d3loaded}>
 
   </script>
 </svelte:head>
-<center id="loading">Loading...</center>
+
+<header>
+  <h1>DAS Bengawan Solo</h1>
+  <p id="update-time">Update: -</p>
+</header>
+
+<div id="loading">Loading...</div>
+
 <div id="target"></div>
