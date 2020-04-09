@@ -2,7 +2,50 @@
   import { onMount } from "svelte";
 
   let svg = null;
-  let das_bsolo = [204, 2, 62, 47, 5];
+  // let das_bsolo = [204, 2, 62, 47, 5];
+  // let das_bsolo = [204, 2, 12, 47, 5, 54, 240, 45];
+  let das_bsolo = [
+    {
+      id: 204,
+      name: 'Colo',
+      d: 0,
+    },
+    {
+      id: 2,
+      name: 'Jurug',
+      d: 39,
+    },
+    {
+      id: 12,
+      name: 'Kajangan',
+      d: 89, // 39 (kedungupit) + 50
+    },
+    {
+      id: 47,
+      name: 'Napel',
+      d: 53, // 51 (ngawi junction) + 2
+    },
+    {
+      id: 5,
+      name: 'Cepu',
+      d: 62,
+    },
+    {
+      id: 54,
+      name: 'Bojonegoro',
+      d: 66,
+    },
+    {
+      id: 240,
+      name: 'Widang',
+      d: 60,
+    },
+    {
+      id: 45,
+      name: 'Karanggeneng',
+      d: 55,
+    },
+  ]
   let geojson = {
     type: "FeatureCollection",
     features: []
@@ -27,7 +70,6 @@
     fetch("https://cors-anywhere.herokuapp.com/" + url)
       .then(response => response.json())
       .then(tma => format_geojson(tma));
-    // format_geojson(dummy_tma)
   }
 
   function format_date(str) {
@@ -57,29 +99,33 @@
   }
 
   function format_geojson(tma) {
-    // console.log(tma)
-
-    // // sort by coordinates biar bisa manipulasi jarak terlalu dekat
-    // tma.sort((a, b) => {
-    //   let ca = a.latlng.split(",");
-    //   let cb = b.latlng.split(",");
-    //   return ca[0] > cb[0] ? 1 : (ca[0] < cb[0] ? -1 : 0);
-    // });
-
     // sort by das_bsolo
     var tma_max = 0
     var tma_min = 99999999
     var temp_tma = []
-    for (const id of das_bsolo) {
+    for (const das of das_bsolo) {
       // get from tma
       for (const data of tma) {
         const id_tma = parseInt(data.id)
         const nilai_tma = data.tma
-        if (id_tma === id) {
+        if (id_tma === das.id) {
           // get min & max tma
           if (nilai_tma > tma_max) { tma_max = nilai_tma }
           if (nilai_tma < tma_min) { tma_min = nilai_tma }
 
+          // set status
+          if (nilai_tma >= data.siaga2) {
+            data.status_tma = 'sm'
+          } else if (nilai_tma >= data.siaga1) {
+            data.status_tma = 'sk'
+          } else if (nilai_tma >= data.normal) {
+            data.status_tma = 'sh'
+          } else {
+            data.status_tma = ''
+          }
+
+          data.name = das.name
+          data.d = das.d
           temp_tma.push(data)
           break
         }
@@ -88,29 +134,34 @@
     tma = temp_tma
     var tma_diff = tma_max - tma_min
 
-    console.log(`max: ${tma_max}`)
-    console.log(`min: ${tma_min}`)
-    console.log(`diff: ${tma_diff}`)
+    // console.log(`max: ${tma_max}`)
+    // console.log(`min: ${tma_min}`)
+    // console.log(`diff: ${tma_diff}`)
 
     // var visualisasi ketinggian
     var start_h = 70;
     var end_h = 10;
     var d_h = (start_h - end_h);
 
+    let prevcoordinate = null;
     let prevlat = null;
-    let mindiff = (0.075 * 800) / window.innerWidth;
-    // console.log(mindiff)
+    let mindiff = (0.5 * 800) / window.innerWidth;
     for (const data of tma) {
       let id = parseInt(data.id);
-      if (!das_bsolo.includes(id)) {
-        continue;
-      }
 
-      // let name = data.name
       let coordinates = data.latlng.split(",");
+      coordinates[0] = parseFloat(coordinates[0]);
+      coordinates[1] = parseFloat(coordinates[1]);
+      // console.log(id +"__"+data.name + " : " + coordinates);
+
+      let d = data.d * 1000
+      if (prevcoordinate) {
+        // rumus untuk menambahkan jarak ke koordinat
+        coordinates[0] = prevcoordinate[0] + (180/Math.PI)*(d/6378137)/Math.cos(Math.PI/180*prevcoordinate[0])
+      }
+      prevcoordinate = coordinates;
 
       // buat jadi 1 dimensi, hanya pakai lat
-      coordinates[0] = parseFloat(coordinates[0]);
       coordinates[1] = 0;
 
       // manipulate lat
@@ -126,20 +177,20 @@
 
       let h_tma = end_h + (data.tma - tma_min) * d_h / tma_diff
       // console.log(`${h_tma} = (${data.tma} - ${tma_min}) * ${d_h} / ${tma_diff}`)
-      // console.log(id +"__"+data.name + " : " + coordinates + " -> " + difflat);
+      // console.log(id +"__"+data.name + " : " + coordinates + " -> " + difflat + ' -> '+ hv);
       // console.log(data.status_tma + " : " + data.tma +"/"+ tma_min +" = "+ h_tma);
       // console.log(data.sampling);
 
       let feature = {
         type: "Feature",
         properties: {
-          name: data.name,// + Math.random() * 10,
+          name: data.name,
           status: data.status_tma,
           tma: data.tma.toFixed(2),
           sampling: format_date(data.sampling),
-          siaga1: data.normal ? data.normal.toFixed(2) : '--',
-          siaga2: data.siaga1 ? data.siaga1.toFixed(2) : '--',
-          siaga3: data.siaga2 ? data.siaga2.toFixed(2) : '--',
+          sh: data.normal ? data.normal.toFixed(2) : '--',
+          sk: data.siaga1 ? data.siaga1.toFixed(2) : '--',
+          sm: data.siaga2 ? data.siaga2.toFixed(2) : '--',
           h_tma: h_tma
         },
         geometry: {
@@ -158,9 +209,6 @@
   }
 
   function init_graphic(geojson) {
-    // console.log('init')
-    // console.log(geojson)
-
     var loading = document.getElementById("loading");
     if (loading) {
       loading.remove();
@@ -193,23 +241,26 @@
     svg.attr("width", width)
       .attr("height", height);
 
+    // build semua info
     var tma_line_temp = {x1:'',y1:'',x2:'',y2:''}
     var tma_line = []
+    var infos = []
     for (var feature of geojson.features) {
       var ll = feature.geometry.coordinates;
       ll = projection(ll);
 
       var info = {
         name: feature.properties.name,
+        ll: ll,
         status: feature.properties.status,
         tma: feature.properties.tma,
         sampling: feature.properties.sampling,
-        siaga1: feature.properties.siaga1,
-        siaga2: feature.properties.siaga2,
-        siaga3: feature.properties.siaga3,
+        sh: feature.properties.sh,
+        sk: feature.properties.sk,
+        sm: feature.properties.sm,
         h_tma: feature.properties.h_tma
       };
-      add_marker(ll, info);
+      infos.push(info)
 
       var tma_line_x = ll[0]
       var tma_line_y = ll[1] - feature.properties.h_tma - 30
@@ -224,28 +275,34 @@
       }
     }
 
-    // console.log(tma_line)
+    // gambar line dulu agar nantinya ada di bawah tiang & tanda
     svg.selectAll(null)
       .data(tma_line)
       .enter()
       .append('line')
-      .attr('x1', d => d.x1)
-      .attr('y1', d => d.y1)
-      .attr('x2', d => d.x2)
-      .attr('y2', d => d.y2)
-      .style("stroke", 'lime')
-      .style("stroke-width", 1)
+        .attr('x1', d => d.x1)
+        .attr('y1', d => d.y1)
+        .attr('x2', d => d.x2)
+        .attr('y2', d => d.y2)
+        .style("stroke", '#666')
+        .style("stroke-width", 1)
+
+    // baru gambar markernya
+    for (const info of infos) {
+      add_marker(info)
+    }
 
     setTimeout(() => {
       window.location.reload()
     }, 5 * 60 * 1000);
   }
 
-  function add_marker(ll, info) {
+  function add_marker(info) {
     if (svg == null) {
       return;
     }
 
+    var ll = info.ll
     var x = ll[0];
     var y = 80;
     var h_tma = info.h_tma;
@@ -254,16 +311,34 @@
 
     add_tiang(g, y, h_tma);
     add_info(g, info);
-
-    // lokasi
-    // g.append("div")
-    // 	.attr("y", y + 15)//magic number here
-    // 	.attr("x", x)
-    // 	.text(name)
   }
 
-  function add_info(g, info, width = 65, height = 65) {
+  function add_info(g, info, width = 75, height = 65) {
+    var fill = "#666";
+    switch (info.status) {
+      case "sh":
+        fill = "lime";
+        break;
+
+      case "sk":
+        fill = "yellow";
+        break;
+
+      case "sm":
+        fill = "red";
+        break;
+    }
+
     g.attr("font-size", "7px")
+
+    // tma
+    g.append("line")
+      .attr("stroke", fill)
+      .attr("stroke-width", 5)
+      .attr("x1", -6)
+      .attr("x2", 6)
+      .attr("y1", -info.h_tma)
+      .attr("y2", -info.h_tma);
 
     g.append("rect")
       .attr("x", -width / 2)
@@ -274,8 +349,6 @@
       .attr("stroke", "gray");
 
     // info
-    var fill = info.status == "siaga1" ? "lime" :
-        (info.status == "siaga2" ? "yellow" : "orangered");
     g.append("circle")
       .attr("cx", -width / 2 + 5)
       .attr("cy", 17)
@@ -303,22 +376,22 @@
       .attr("y", 50) //magic number here
       .attr("x", -width / 2 + 9)
       .attr("color", "green")
-      .text(`SH: ${info.siaga1}`);
+      .text(`SH: ${info.sh}`);
 
     g.append("text")
       .attr("y", 60) //magic number here
       .attr("x", -width / 2 + 9)
       .attr("color", "orange")
-      .text(`SK: ${info.siaga2}`);
+      .text(`SK: ${info.sk}`);
 
     g.append("text")
       .attr("y", 70) //magic number here
       .attr("x", -width / 2 + 9)
       .attr("color", "red")
-      .text(`SM: ${info.siaga3}`);
+      .text(`SM: ${info.sm}`);
   }
 
-  function add_tiang(g, height = 80, h_tma = 0) {
+  function add_tiang(g, height = 80) {
     var stroke = "gray";
     var stroke_width = 3;
 
@@ -342,16 +415,6 @@
       .attr("x2", 0)
       .attr("y1", -height)
       .attr("y2", 0);
-
-    // tma
-    tiang
-      .append("line")
-      .attr("stroke", 'lime')
-      .attr("stroke-width", 5)
-      .attr("x1", -6)
-      .attr("x2", 6)
-      .attr("y1", -h_tma)
-      .attr("y2", -h_tma);
 
     // // top
     // tiang
